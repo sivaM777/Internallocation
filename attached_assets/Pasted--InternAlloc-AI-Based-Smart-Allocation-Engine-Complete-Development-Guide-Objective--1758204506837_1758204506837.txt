@@ -1,0 +1,257 @@
+
+
+
+
+
+# InternAlloc – AI-Based Smart Allocation Engine: Complete Development Guide ## Objective
+Build a comprehensive AI-powered internship allocation system with three distinct user portals (Student, Company, Admin) that uses OpenAI embeddings for intelligent matching and includes real-time preview, fairness monitoring, and audit capabilities.
+
+## 1. Initial Project Setup ### Replit Configuration
+Create a new Node.js project named: InternAlloc-SIH25033
+Configure the following environment variables in Replit's Secrets panel:
+
+DATABASE_URL=<your_postgres_connection_string>
+OPENAI_API_KEY=<your_openai_api_key>
+REDIS_URL=<your_redis_connection_string>
+JWT_SECRET=<your_jwt_secret>
+### Technology Stack
+Frontend: React.js + Material-UI + React Router + Recharts
+Backend: Node.js + Express.js + JWT authentication
+Database: PostgreSQL with array fields for skills
+AI Engine: Python Flask microservice + OpenAI Embeddings API
+Caching: Redis (optional)
+Development Environment: Replit full-stack
+## 2. Database Schema Implementation
+Create the following PostgreSQL tables with exact field specifications:
+
+
+-- Core users table
+CREATE TABLE users (
+  id SERIAL PRIMARY KEY,
+  email TEXT UNIQUE NOT NULL,
+  password_hash TEXT NOT NULL,
+  role TEXT NOT NULL CHECK (role IN ('student','company','admin')),
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Student profiles with array fields
+CREATE TABLE students (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  skills TEXT[] DEFAULT '{}',
+  cgpa NUMERIC(3,2) CHECK (cgpa >= 0 AND cgpa <= 10),
+  location TEXT,
+  diversity_flag BOOLEAN DEFAULT FALSE,
+  profile_completed BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Company profiles
+CREATE TABLE companies (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  location TEXT,
+  industry TEXT,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Internship postings with skill arrays
+CREATE TABLE internships (
+  id SERIAL PRIMARY KEY,
+  company_id INTEGER REFERENCES companies(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  description TEXT,
+  required_skills TEXT[] DEFAULT '{}',
+  location TEXT,
+  stipend INTEGER,
+  positions INTEGER DEFAULT 1,
+  is_active BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Allocation audit trail
+CREATE TABLE allocations (
+  id SERIAL PRIMARY KEY,
+  student_id INTEGER REFERENCES students(id),
+  internship_id INTEGER REFERENCES internships(id),
+  match_score NUMERIC(5,2),
+  explanation TEXT,
+  status TEXT DEFAULT 'matched' CHECK (status IN ('matched','applied','shortlisted','rejected')),
+  timestamp TIMESTAMP DEFAULT NOW()
+);
+
+-- Student feedback on matches
+CREATE TABLE match_feedback (
+  id SERIAL PRIMARY KEY,
+  student_id INTEGER REFERENCES students(id),
+  internship_id INTEGER REFERENCES internships(id),
+  feedback TEXT CHECK (feedback IN ('good','poor')),
+  created_at TIMESTAMP DEFAULT NOW()
+);
+## 3. Backend API Specification ### Required Express.js Routes
+Authentication Routes:
+
+POST /api/auth/register - User registration with role validation
+POST /api/auth/login - JWT token generation
+GET /api/auth/verify - Token validation middleware
+Student Routes:
+
+GET /api/students/profile - Fetch student profile
+PUT /api/students/profile - Update profile with skills autocomplete
+GET /api/students/matches/:studentId - Get top 5 matches with explanations
+POST /api/students/feedback - Submit match feedback
+Company Routes:
+
+GET /api/companies/profile - Fetch company profile
+PUT /api/companies/profile - Update company details
+POST /api/internships - Create new internship posting
+GET /api/internships/company/:companyId - List company's internships
+GET /api/candidates/:internshipId - View matched candidates with scores
+Admin Routes:
+
+GET /api/admin/stats - System statistics dashboard
+POST /api/admin/match/run - Trigger bulk matching process
+GET /api/admin/fairness - Diversity metrics and alerts
+GET /api/admin/audit - Export allocation audit trail
+Matching Routes:
+
+GET /api/match/preview/:studentId - Real-time match preview
+POST /api/match/bulk - Process incremental matching
+### Required Middleware
+JWT authentication with role-based access control
+Input validation using express-validator
+Rate limiting for API endpoints
+Error handling with structured responses
+## 4. AI Matching Service (Python Flask) ### Flask Application Structure
+Create ai-engine/app.py with the following specifications:
+
+Endpoint: POST /match
+Input Format:
+
+
+{
+  "student_profile": {
+    "skills": ["python", "machine learning"],
+    "cgpa": 8.5,
+    "location": "Bangalore",
+    "diversity_flag": true
+  },
+  "internships": [
+    {
+      "id": 1,
+      "required_skills": ["python", "data science"],
+      "location": "Bangalore",
+      "title": "Data Science Intern"
+    }
+  ]
+}
+Matching Algorithm Requirements:
+
+Generate OpenAI embeddings for all skill sets
+Calculate cosine similarity between student and internship skills
+Apply weighted scoring formula:
+Skills similarity: 50%
+CGPA factor (normalized 0-1): 20%
+Location match bonus: 10%
+Diversity boost: 20%
+Return matches sorted by score with explanations
+Output Format:
+
+
+{
+  "matches": [
+    {
+      "internship_id": 1,
+      "match_score": 85.5,
+      "explanation": "Strong skill overlap in Python and ML. Location match bonus applied.",
+      "skill_overlap": ["python"],
+      "missing_skills": ["data science"]
+    }
+  ]
+}
+## 5. Frontend Component Architecture ### Required React Components
+Shared Components:
+
+App.tsx - Main router with role-based navigation
+Navbar.tsx - Dynamic navigation based on user role
+ProtectedRoute.tsx - Route protection with role validation
+Student Portal Components:
+
+ProfileForm.tsx - Skills autocomplete, CGPA slider, location dropdown
+MatchPreview.tsx - Real-time match updates as profile changes
+MatchResults.tsx - Top 5 matches with expandable explanations
+SkillsAutocomplete.tsx - Reusable skills input with suggestions
+Company Portal Components:
+
+InternshipForm.tsx - Create/edit internship postings
+CandidateList.tsx - View matched students with score highlights
+BulkUpload.tsx - CSV import functionality (bonus)
+Admin Portal Components:
+
+StatsDashboard.tsx - System metrics with charts
+FairnessMonitor.tsx - Diversity analytics and alerts
+AuditLog.tsx - Searchable allocation history
+MatchingControl.tsx - Trigger bulk matching with progress
+### UI/UX Requirements
+Use Material-UI Grid system for responsive design
+Implement color-coded match scores: Green (>80%), Yellow (50-80%), Red (<50%)
+Add "Why this match?" tooltips using MUI Tooltip
+Include loading states for all async operations
+Implement error boundaries for graceful error handling
+## 6. Key Features Implementation ### Real-time Match Preview
+Implement debounced API calls when student profile changes
+Show live match score updates without page refresh
+Display skill gap analysis with suggestions
+### Fairness Monitoring
+Track diversity metrics across all allocations
+Generate alerts for under-represented group disparities
+Provide visual charts showing allocation distribution
+### Audit Trail
+Log all allocation decisions with timestamps
+Include match scores and explanations in audit records
+Provide export functionality (JSON/CSV)
+## 7. Bonus Enhancements (Optional) ### AI Chatbot Integration
+Add floating chat widget using OpenAI Chat API
+Handle queries like "Show me Python internships in Bangalore"
+Implement context-aware responses
+### Gamification Elements
+Profile completion badges using MUI Chips
+Achievement system for various milestones
+Progress indicators for profile optimization
+### Predictive Suggestions
+Show skill recommendations to improve match scores
+Display "Add 'Docker' to improve score by 5%" type hints
+Implement trending skills analysis
+## 8. Testing and Deployment ### Testing Requirements
+Unit tests for all API endpoints
+Integration tests for the matching algorithm
+Frontend component testing with React Testing Library
+End-to-end testing for complete user flows
+### Deployment Steps
+Install all Node.js and Python dependencies
+Set up environment variables in Replit
+Initialize database with schema
+Start backend server: npm start
+Launch AI service: python ai-engine/app.py
+Deploy React frontend using Replit's hosting
+Test complete user journey: registration → profile → matching → results
+## 9. Success Criteria
+Your implementation should demonstrate:
+
+Complete user flows for all three portals
+Real-time AI-powered matching with explanations
+Responsive UI with proper error handling
+Fairness monitoring and audit capabilities
+Clean, documented code following best practices
+## 10. Deliverables Checklist
+Working Replit project with all components
+Database schema with sample data
+All API endpoints functional and tested
+AI matching service with OpenAI integration
+Complete frontend with all required pages
+Admin dashboard with analytics
+Documentation and README
+Demo-ready with test accounts for each role
+This comprehensive guide provides the exact specifications needed to build a winning hackathon project. Follow each section systematically to create a fully functional AI-powered internship allocation system
