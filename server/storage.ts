@@ -76,7 +76,7 @@ export class DatabaseStorage implements IStorage {
   async createUser(insertUser: InsertUser): Promise<User> {
     const [user] = await db
       .insert(users)
-      .values(insertUser)
+      .values([insertUser])
       .returning();
     return user;
   }
@@ -95,7 +95,7 @@ export class DatabaseStorage implements IStorage {
   async createStudent(student: InsertStudent): Promise<Student> {
     const [newStudent] = await db
       .insert(students)
-      .values(student)
+      .values([student])
       .returning();
     return newStudent;
   }
@@ -127,7 +127,7 @@ export class DatabaseStorage implements IStorage {
   async createCompany(company: InsertCompany): Promise<Company> {
     const [newCompany] = await db
       .insert(companies)
-      .values(company)
+      .values([company])
       .returning();
     return newCompany;
   }
@@ -158,7 +158,7 @@ export class DatabaseStorage implements IStorage {
   async createInternship(internship: InsertInternship): Promise<Internship> {
     const [newInternship] = await db
       .insert(internships)
-      .values(internship)
+      .values([internship])
       .returning();
     return newInternship;
   }
@@ -188,7 +188,7 @@ export class DatabaseStorage implements IStorage {
   async createAllocation(allocation: InsertAllocation): Promise<Allocation> {
     const [newAllocation] = await db
       .insert(allocations)
-      .values(allocation)
+      .values([allocation])
       .returning();
     return newAllocation;
   }
@@ -196,14 +196,19 @@ export class DatabaseStorage implements IStorage {
   async getAllocations(filters?: { studentId?: number; internshipId?: number; status?: string }): Promise<Allocation[]> {
     let query = db.select().from(allocations);
 
+    const conditions = [];
     if (filters?.studentId) {
-      query = query.where(eq(allocations.studentId, filters.studentId));
+      conditions.push(eq(allocations.studentId, filters.studentId));
     }
     if (filters?.internshipId) {
-      query = query.where(eq(allocations.internshipId, filters.internshipId));
+      conditions.push(eq(allocations.internshipId, filters.internshipId));
     }
     if (filters?.status) {
-      query = query.where(eq(allocations.status, filters.status as any));
+      conditions.push(eq(allocations.status, filters.status as any));
+    }
+
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions));
     }
 
     return await query.orderBy(desc(allocations.timestamp));
@@ -232,7 +237,7 @@ export class DatabaseStorage implements IStorage {
   async submitFeedback(feedback: InsertMatchFeedback): Promise<MatchFeedback> {
     const [newFeedback] = await db
       .insert(matchFeedback)
-      .values(feedback)
+      .values([feedback])
       .returning();
     return newFeedback;
   }
