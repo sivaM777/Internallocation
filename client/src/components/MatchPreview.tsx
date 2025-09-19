@@ -29,15 +29,27 @@ export function MatchPreview() {
     enabled: user?.role === 'student',
   });
 
+  interface StudentProfile {
+    id?: number;
+    name?: string;
+    skills?: string[];
+    cgpa?: string;
+    location?: string;
+    diversityFlag?: boolean;
+  }
+
   useEffect(() => {
-    if (profile?.id) {
-      setStudentId(profile.id);
+    if (profile) {
+      const typedProfile = profile as StudentProfile;
+      if (typedProfile.id) {
+        setStudentId(typedProfile.id);
+      }
     }
   }, [profile]);
 
   const { data: matches = [], isLoading, refetch } = useQuery({
-    queryKey: ["/api/match/preview", studentId],
-    enabled: !!studentId,
+    queryKey: ["/api/match/preview"],
+    enabled: user?.role === 'student',
     refetchInterval: 30000, // Refresh every 30 seconds for live updates
   });
 
@@ -105,8 +117,8 @@ export function MatchPreview() {
                   <div className="h-3 bg-muted rounded w-2/3"></div>
                 </div>
               ))
-            ) : matches.length > 0 ? (
-              matches.map((match: MatchData, index: number) => (
+            ) : (matches as MatchData[]).length > 0 ? (
+              (matches as MatchData[]).map((match: MatchData, index: number) => (
                 <div 
                   key={index}
                   className="border border-border rounded-lg p-4 hover:shadow-md transition-shadow duration-200"

@@ -27,14 +27,23 @@ export function MatchResults() {
   const [expandedMatch, setExpandedMatch] = useState<number | null>(null);
 
   // Get student profile to extract student ID
+  interface StudentProfile {
+    id?: number;
+    name?: string;
+    skills?: string[];
+    cgpa?: string;
+    location?: string;
+    diversityFlag?: boolean;
+  }
+
   const { data: profile } = useQuery({
     queryKey: ["/api/students/profile"],
     enabled: user?.role === 'student',
   });
 
   const { data: matches = [], isLoading } = useQuery({
-    queryKey: ["/api/students/matches", profile?.id],
-    enabled: !!profile?.id,
+    queryKey: ["/api/students/matches"],
+    enabled: user?.role === 'student',
   });
 
   const feedbackMutation = useMutation({
@@ -72,9 +81,10 @@ export function MatchResults() {
   };
 
   const submitFeedback = (internshipId: number, feedback: 'good' | 'poor') => {
-    if (profile?.id) {
+    const typedProfile = profile as StudentProfile;
+    if (typedProfile?.id) {
       feedbackMutation.mutate({
-        studentId: profile.id,
+        studentId: typedProfile.id,
         internshipId,
         feedback
       });
@@ -114,8 +124,8 @@ export function MatchResults() {
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {matches.length > 0 ? (
-            matches.map((match: MatchData, index: number) => (
+          {(matches as MatchData[]).length > 0 ? (
+            (matches as MatchData[]).map((match: MatchData, index: number) => (
               <div 
                 key={index}
                 className="border border-border rounded-lg p-4 hover:shadow-md transition-all duration-200 cursor-pointer"
@@ -220,7 +230,7 @@ export function MatchResults() {
           )}
 
           {/* Feedback Section */}
-          {matches.length > 0 && (
+          {(matches as MatchData[]).length > 0 && (
             <div className="mt-6 p-4 bg-muted rounded-lg">
               <div className="flex items-center justify-between">
                 <div>
@@ -232,7 +242,7 @@ export function MatchResults() {
                     variant="ghost"
                     size="sm"
                     className="text-green-500 hover:bg-green-50 hover:text-green-600"
-                    onClick={() => submitFeedback(matches[0]?.internship_id, 'good')}
+                    onClick={() => submitFeedback((matches as MatchData[])[0]?.internship_id, 'good')}
                     disabled={feedbackMutation.isPending}
                     data-testid="button-feedback-good"
                   >
@@ -242,7 +252,7 @@ export function MatchResults() {
                     variant="ghost"
                     size="sm"
                     className="text-red-500 hover:bg-red-50 hover:text-red-600"
-                    onClick={() => submitFeedback(matches[0]?.internship_id, 'poor')}
+                    onClick={() => submitFeedback((matches as MatchData[])[0]?.internship_id, 'poor')}
                     disabled={feedbackMutation.isPending}
                     data-testid="button-feedback-poor"
                   >

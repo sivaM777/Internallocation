@@ -76,7 +76,7 @@ export class DatabaseStorage implements IStorage {
   async createUser(insertUser: InsertUser): Promise<User> {
     const [user] = await db
       .insert(users)
-      .values([insertUser])
+      .values([insertUser as any])
       .returning();
     return user;
   }
@@ -188,7 +188,7 @@ export class DatabaseStorage implements IStorage {
   async createAllocation(allocation: InsertAllocation): Promise<Allocation> {
     const [newAllocation] = await db
       .insert(allocations)
-      .values([allocation])
+      .values([allocation as any])
       .returning();
     return newAllocation;
   }
@@ -211,7 +211,7 @@ export class DatabaseStorage implements IStorage {
       query = query.where(and(...conditions));
     }
 
-    return await query.orderBy(desc(allocations.timestamp));
+    return await query.orderBy(desc(allocations.timestamp)) as Allocation[];
   }
 
   async getAllocationsWithDetails(): Promise<any[]> {
@@ -237,7 +237,7 @@ export class DatabaseStorage implements IStorage {
   async submitFeedback(feedback: InsertMatchFeedback): Promise<MatchFeedback> {
     const [newFeedback] = await db
       .insert(matchFeedback)
-      .values([feedback])
+      .values([feedback as any])
       .returning();
     return newFeedback;
   }

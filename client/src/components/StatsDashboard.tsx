@@ -4,15 +4,24 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ChartLine, Users, Briefcase, Handshake, PieChart, Download, TrendingUp } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 
+interface AdminStats {
+  totalStudents?: number;
+  activeInternships?: number;  
+  successfulMatches?: number;
+  avgMatchScore?: number;
+}
+
 export function StatsDashboard() {
   const { data: stats = {}, isLoading } = useQuery({
     queryKey: ["/api/admin/stats"],
   });
 
+  const typedStats = stats as AdminStats;
+
   const metricCards = [
     {
       title: "Total Students",
-      value: stats.totalStudents || 0,
+      value: typedStats.totalStudents || 0,
       change: "+12% from last month",
       icon: Users,
       gradient: "from-blue-50 to-blue-100",
@@ -21,7 +30,7 @@ export function StatsDashboard() {
     },
     {
       title: "Active Internships",
-      value: stats.activeInternships || 0,
+      value: typedStats.activeInternships || 0,
       change: "+8% from last month",
       icon: Briefcase,
       gradient: "from-green-50 to-green-100",
@@ -30,7 +39,7 @@ export function StatsDashboard() {
     },
     {
       title: "Successful Matches",
-      value: stats.successfulMatches || 0,
+      value: typedStats.successfulMatches || 0,
       change: "+24% from last month",
       icon: Handshake,
       gradient: "from-purple-50 to-purple-100",
@@ -39,7 +48,7 @@ export function StatsDashboard() {
     },
     {
       title: "Average Match Score",
-      value: `${stats.avgMatchScore || 0}%`,
+      value: `${typedStats.avgMatchScore || 0}%`,
       change: "+3.2% from last month",
       icon: PieChart,
       gradient: "from-orange-50 to-orange-100",

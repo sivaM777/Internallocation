@@ -14,15 +14,24 @@ export default function CompanyDashboard() {
   const { user, isLoading } = useAuth();
   const [selectedInternshipId, setSelectedInternshipId] = useState<number | null>(null);
 
+  interface CompanyProfile {
+    id?: number;
+    name?: string;
+    location?: string;
+    industry?: string;
+  }
+
   // Get company profile to fetch internships
   const { data: profile } = useQuery({
     queryKey: ["/api/companies/profile"],
     enabled: user?.role === 'company',
   });
 
+  const typedProfile = profile as CompanyProfile;
+
   const { data: internships = [], isLoading: internshipsLoading } = useQuery({
-    queryKey: ["/api/internships/company", profile?.id],
-    enabled: !!profile?.id,
+    queryKey: ["/api/internships/company", typedProfile?.id],
+    enabled: !!typedProfile?.id,
   });
 
   if (isLoading) {
@@ -80,8 +89,8 @@ export default function CompanyDashboard() {
                         <div className="h-3 bg-muted rounded w-2/3"></div>
                       </div>
                     ))
-                  ) : internships.length > 0 ? (
-                    internships.map((internship: any) => (
+                  ) : (internships as any[]).length > 0 ? (
+                    (internships as any[]).map((internship: any) => (
                       <div key={internship.id} className="border border-border rounded-lg p-4" data-testid={`internship-${internship.id}`}>
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex-1">

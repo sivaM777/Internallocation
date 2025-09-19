@@ -31,12 +31,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Add route for student matches without parameter
+  app.get("/api/students/matches", requireAuth, async (req: any, res) => {
+    try {
+      const student = await storage.getStudentByUserId(req.user.id);
+      if (!student) {
+        return res.status(404).json({ message: "Student profile not found" });
+      }
+
+      const internships = await storage.getAllActiveInternships();
+      
+      const matchRequest = {
+        student_profile: {
+          skills: student.skills || [],
+          cgpa: parseFloat(student.cgpa || '0'),
+          location: student.location || '',
+          diversity_flag: student.diversityFlag || false
+        },
+        internships: internships.map(i => ({
+          id: i.id,
+          required_skills: i.requiredSkills || [],
+          location: i.location || '',
+          title: i.title
+        }))
+      };
+
+      const matches = await AIMatchingService.calculateMatches(matchRequest);
+      res.json(matches.matches.slice(0, 5)); // Top 5 matches
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get matches" });
+    }
+  });
+
   app.get("/api/students/matches/:studentId", requireAuth, async (req: any, res) => {
     try {
       const studentId = parseInt(req.params.studentId);
-      const student = await storage.getStudent(studentId);
-      if (!student) {
-        return res.status(404).json({ message: "Student not found" });
+      const student = await storage.getStudentByUserId(req.user.id);
+      
+      // Authorization check
+      if (!student || student.id !== studentId) {
+        return res.status(403).json({ message: "Access denied" });
       }
 
       const internships = await storage.getAllActiveInternships();
@@ -243,13 +277,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Matching Routes
+  // Matching Routes - Fix route for match preview
   app.get("/api/match/preview/:studentId", requireAuth, async (req: any, res) => {
     try {
       const studentId = parseInt(req.params.studentId);
-      const student = await storage.getStudent(studentId);
-      if (!student) {
-        return res.status(404).json({ message: "Student not found" });
+      
+      // Authorization check - ensure user owns this student profile
+      const student = await storage.getStudentByUserId(req.user.id);
+      if (!student || student.id !== studentId) {
+        return res.status(403).json({ message: "Access denied" });
       }
 
       const internships = await storage.getAllActiveInternships();
@@ -271,6 +307,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const matches = await AIMatchingService.calculateMatches(matchRequest);
       res.json(matches.matches.slice(0, 3)); // Top 3 for preview
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get match preview" });
+    }
+  });
+
+  // Add route to handle match preview without studentId parameter
+  app.get("/api/match/preview", requireAuth, async (req: any, res) => {
+    try {
+      const student = await storage.getStudentByUserId(req.user.id);
+      if (!student) {
+        return res.status(404).json({ message: "Student profile not found" });
+      }
+
+      const internships = await storage.getAllActiveInternships();
+      
+      const matchRequest = {
+        student_profile: {
+          skills: student.skills || [],
+          cgpa: parseFloat(student.cgpa || '0'),
+          location: student.location || '',
+          diversity_flag: student.diversityFlag || false
+        },
+        internships: internships.map(i => ({
+          id: i.id,
+          required_skills: i.requiredSkills || [],
+          location: i.location || '',
+          title: i.title
+        }))
+      };
+
+      const matches = await AIMatchingService.calculateMatches(matchRequest);
+      res.json(matches.matches.slice(0, 3));
     } catch (error) {
       res.status(500).json({ message: "Failed to get match preview" });
     }

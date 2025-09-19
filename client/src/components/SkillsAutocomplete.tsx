@@ -75,9 +75,9 @@ export function SkillsAutocomplete({ value, onChange, placeholder = "Type to add
         <Search className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground" />
         
         {/* Suggestions Dropdown */}
-        {showSuggestions && suggestions.length > 0 && (
+        {showSuggestions && (suggestions as string[]).length > 0 && (
           <div className="absolute z-10 w-full bg-card border border-border rounded-md mt-1 shadow-lg max-h-40 overflow-y-auto">
-            {suggestions.map((suggestion: string, index: number) => (
+            {(suggestions as string[]).map((suggestion: string, index: number) => (
               <button
                 key={index}
                 className="w-full text-left px-3 py-2 hover:bg-muted transition-colors text-sm"

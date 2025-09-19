@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,6 +30,15 @@ export function ProfileForm() {
     enabled: user?.role === 'student',
   });
 
+  interface StudentProfile {
+    id?: number;
+    name?: string;
+    skills?: string[];
+    cgpa?: string;
+    location?: string;
+    diversityFlag?: boolean;
+  }
+
   const updateProfileMutation = useMutation({
     mutationFn: async (data: any) => {
       const res = await apiRequest("PUT", "/api/students/profile", data);
@@ -53,15 +62,38 @@ export function ProfileForm() {
 
   useEffect(() => {
     if (profile) {
+      const typedProfile = profile as StudentProfile;
       setFormData({
-        name: profile.name || "",
-        skills: profile.skills || [],
-        cgpa: parseFloat(profile.cgpa) || 8.5,
-        location: profile.location || "",
-        diversityFlag: profile.diversityFlag || false
+        name: typedProfile.name || "",
+        skills: typedProfile.skills || [],
+        cgpa: parseFloat(typedProfile.cgpa || '8.5'),
+        location: typedProfile.location || "",
+        diversityFlag: typedProfile.diversityFlag || false
       });
     }
   }, [profile]);
+
+  // Debounced function to trigger match preview updates
+  const debouncedUpdatePreview = useCallback(
+    (() => {
+      let timeoutId: NodeJS.Timeout;
+      return () => {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => {
+          // Invalidate match preview queries to trigger refresh
+          queryClient.invalidateQueries({ queryKey: ["/api/match/preview"] });
+        }, 800); // 800ms delay
+      };
+    })(),
+    []
+  );
+
+  // Trigger preview updates when form data changes
+  useEffect(() => {
+    if (formData.name && formData.skills.length > 0) {
+      debouncedUpdatePreview();
+    }
+  }, [formData.skills, formData.cgpa, formData.location, formData.diversityFlag, debouncedUpdatePreview]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
